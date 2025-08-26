@@ -7,21 +7,22 @@ const suspendContactRecording = {
 
     async process(ContactId) {
         let arnList = (InstanceARN).split("/");
-        
-        const input = { 
-            'InstanceId': arnList[1], 
-            'ContactId': ContactId, 
+
+        const input = {
+            'InstanceId': arnList[1],
+            'ContactId': ContactId,
             'InitialContactId': ContactId
         };
-            
+
         const client = new ConnectClient({ region: process.env.AWS_REGION });
         const command = new SuspendContactRecordingCommand(input);
 
-        console.log('suspendContactRecording input',input);
+        console.log('suspendContactRecording input', JSON.stringify(input));
 
         const response = await client.send(command);
-    
-        console.log("suspendContactRecording response - ", response);
+
+        console.log("suspendContactRecording response - ", JSON.stringify(response));
     }
 }
+
 module.exports = suspendContactRecording;

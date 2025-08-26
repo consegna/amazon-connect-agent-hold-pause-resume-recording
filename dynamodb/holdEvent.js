@@ -1,29 +1,31 @@
-const AWS = require('aws-sdk');
-const docClient = new AWS.DynamoDB.DocumentClient({
-	apiVersion: '2012-08-10',
-	sslEnabled: false,
-	paramValidation: false,
-	convertResponseTypes: false
-});
-const tableName = process.env.HoldEventLogTable;
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb")
+
+const REGION = process.env.AWS_REGION || 'ap-southeast-2';
+const TABLENAME = process.env.HoldEventLogTable;
+const DOCCLIENT = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
 
 const holdEvent = {
 
     async save(eventId, ContactId, State, StateTimestamp) {
-    
-        var inputTextToDB = '{"eventId": "' + eventId +
-            '","ContactId": "' + ContactId +
-            '","State": "' + State +
-            '","StateTimestamp" : "' + StateTimestamp + '"}';
-    
-        var paramsIns = {
-            TableName: tableName,
-            Item: JSON.parse(inputTextToDB)
+
+        let inputToDb = {
+            "eventId": eventId,
+            "ContactId": ContactId,
+            "State": State,
+            "StateTimestamp": StateTimestamp
+        }
+
+        var paramsPut = {
+            TableName: TABLENAME,
+            Item: inputToDb
         };
-        
-        console.log('dynamodbEvent saveCaseUpdate paramsIns : ' , paramsIns);
-        const response = await docClient.put(paramsIns).promise();
+
+        console.log("dynamodbEvent saveCaseUpdate paramsPut : ", JSON.stringify(paramsPut));
+
+        const response = await DOCCLIENT.send(new PutCommand(paramsPut));
         return response;
     }
 }
+
 module.exports = holdEvent;

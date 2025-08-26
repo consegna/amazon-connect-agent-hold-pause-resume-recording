@@ -5,19 +5,29 @@ Parameters:
   StreamARN:
     Type: String
     Description: Kinesis data stream ARN
+    AllowedPattern: '^arn:aws:kinesis:[a-z0-9-]+:[0-9]{12}:stream\/[a-zA-Z0-9_.-]+$'
+    ConstraintDescription: 'Must be a valid Kinesis Stream ARN.'
   SolutionSourceBucket:
     Type: String
     Description: Source Bucket Name
   InstanceARN:
     Type: String
     Description: InstanceARN
+    AllowedPattern: '^arn:aws:connect:[a-z0-9-]+:[0-9]{12}:instance\/[a-f0-9-]+$'
+    ConstraintDescription: 'Must be a valid Connect Instance ARN.'
+  KMSKeyARN:
+    Type: String
+    Description: KMS Key ARN
+    Default: ''
+    AllowedPattern: '^$|^arn:aws:kms:[a-z0-9-]+:[0-9]{12}:key\/[a-f0-9-]+$'
+    ConstraintDescription: 'Must be a valid KMS Key ARN.'
 
 #######################
 # Globals
 #######################
 Globals:
   Function:
-    Runtime: nodejs16.x
+    Runtime: nodejs22.x
     Architectures:
       - x86_64
     MemorySize: 128
@@ -26,6 +36,9 @@ Globals:
       Variables:
         HoldEventLogTable: !Ref HoldEventLogTable
         InstanceARN: !Ref InstanceARN
+
+Conditions:
+  HasKMSKeyARN: !Not [!Equals [!Ref KMSKeyARN, ""]]
 
 #######################
 # RESOURCES
@@ -47,7 +60,7 @@ Resources:
                 - lambda.amazonaws.com
             Action:
               - 'sts:AssumeRole'
-      RoleName : !Sub '${AWS::StackName}-${AWS::AccountId}-AgentEventLambdaIamRole'
+      RoleName : !Sub '${AWS::StackName}-${AWS::Region}-Role'
       Policies:
         - PolicyName: logs
           PolicyDocument:
@@ -97,8 +110,22 @@ Resources:
                 Resource:
                   - !Sub '${InstanceARN}/contact/*'
       Path: /
-      ManagedPolicyArns: 
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  
+  KMSKeyLambdaDecryptPolicy:
+    Type: AWS::IAM::Policy
+    Condition: HasKMSKeyARN
+    Properties:
+      PolicyName: !Sub '${AWS::StackName}-${AWS::AccountId}-KMSKeyLambdaDecryptPolicy'
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'kms:Decrypt'
+            Resource: 
+              - !Ref KMSKeyARN 
+      Roles:
+        - !Ref AgentEventLambdaIamRole 
 
 #######################
 # Lambda Permission
@@ -118,12 +145,12 @@ Resources:
   AgentEventLambda:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub '${AWS::StackName}-${AWS::AccountId}-AgentEventLambda'
+      FunctionName: !Sub '${AWS::StackName}-AgentEventLambda'
       Handler: index.handler
       CodeUri: 
         Bucket: !Ref SolutionSourceBucket
         Key: connect-agent-hold-stop-recording.zip
-      Description: AgentEventLambda
+      Description: Pause Recording when Agent puts customer on hold using Agent Event Stream
       Role: !GetAtt AgentEventLambdaIamRole.Arn
       Events:
         Stream:

@@ -1,27 +1,31 @@
 
-const { ConnectClient, ResumeContactRecordingCommand } = require("@aws-sdk/client-connect");
+const { 
+    ConnectClient, 
+    ResumeContactRecordingCommand 
+} = require("@aws-sdk/client-connect");
 
 const InstanceARN = process.env.InstanceARN;
 
 const resumeContactRecording = {
 
-    async process(ContactId) {           
+    async process(ContactId) {
         let arnList = (InstanceARN).split("/");
 
-        const input = { 
-            'InstanceId': arnList[1], 
-            'ContactId': ContactId, 
+        const input = {
+            'InstanceId': arnList[1],
+            'ContactId': ContactId,
             'InitialContactId': ContactId
         };
 
         const client = new ConnectClient({ region: process.env.AWS_REGION });
         const command = new ResumeContactRecordingCommand(input);
 
-        console.log('resumeContactRecording input',input);
+        console.log('resumeContactRecording input', JSON.stringify(input));
 
         const response = await client.send(command);
-    
-        console.log("resumeContactRecording response - ", response);
+
+        console.log("resumeContactRecording response - ", JSON.stringify(response));
     }
 }
+
 module.exports = resumeContactRecording;
