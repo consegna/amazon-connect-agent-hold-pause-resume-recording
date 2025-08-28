@@ -155,7 +155,7 @@ Resources:
           Type: Kinesis
           Properties:
             Stream: !Ref StreamARN
-            BatchSize: 1
+            BatchSize: 20
             StartingPosition: LATEST
 
 #######################
