@@ -60,7 +60,6 @@ Resources:
                 - lambda.amazonaws.com
             Action:
               - 'sts:AssumeRole'
-      RoleName : !Sub '${AWS::StackName}-${AWS::Region}-Role'
       Policies:
         - PolicyName: logs
           PolicyDocument:
@@ -145,7 +144,6 @@ Resources:
   AgentEventLambda:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub '${AWS::StackName}-AgentEventLambda'
       Handler: index.handler
       CodeUri: 
         Bucket: !Ref SolutionSourceBucket
@@ -173,4 +171,6 @@ Resources:
         - AttributeName: eventId
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
-      TableName: HoldEventLogTable
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true

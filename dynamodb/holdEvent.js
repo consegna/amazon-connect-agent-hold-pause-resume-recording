@@ -1,11 +1,11 @@
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb")
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 
 const REGION = process.env.AWS_REGION || 'ap-southeast-2';
 const TABLENAME = process.env.HoldEventLogTable;
 const DOCCLIENT = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
 
-const holdEvent = {
+export const holdEvent = {
 
     async save(eventId, ContactId, State, StateTimestamp) {
 
@@ -13,7 +13,8 @@ const holdEvent = {
             "eventId": eventId,
             "ContactId": ContactId,
             "State": State,
-            "StateTimestamp": StateTimestamp
+            "StateTimestamp": StateTimestamp,
+            "ttl": Math.floor(Date.now() / 1000) + (60 * 60) * 3 // 3 hours from now
         }
 
         var paramsPut = {
@@ -27,5 +28,3 @@ const holdEvent = {
         return response;
     }
 }
-
-module.exports = holdEvent;

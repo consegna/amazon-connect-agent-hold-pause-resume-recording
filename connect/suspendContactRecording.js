@@ -1,17 +1,17 @@
 
-const { ConnectClient, SuspendContactRecordingCommand } = require("@aws-sdk/client-connect");
+import { ConnectClient, SuspendContactRecordingCommand } from "@aws-sdk/client-connect";
 
 const InstanceARN = process.env.InstanceARN;
 
-const suspendContactRecording = {
+export const suspendContactRecording = {
 
-    async process(ContactId) {
+    async process(ContactId, InitialContactId) {
         let arnList = (InstanceARN).split("/");
 
         const input = {
             'InstanceId': arnList[1],
             'ContactId': ContactId,
-            'InitialContactId': ContactId
+            'InitialContactId': InitialContactId
         };
 
         const client = new ConnectClient({ region: process.env.AWS_REGION });
@@ -24,5 +24,3 @@ const suspendContactRecording = {
         console.log("suspendContactRecording response - ", JSON.stringify(response));
     }
 }
-
-module.exports = suspendContactRecording;
