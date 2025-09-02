@@ -4,6 +4,16 @@ import { holdEvent } from './dynamodb/holdEvent.js';
 import { resumeContactRecording } from './connect/resumeContactRecording.js';
 import { suspendContactRecording } from './connect/suspendContactRecording.js';
 
+import {
+    ConnectClient,
+} from "@aws-sdk/client-connect";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+
+const REGION = process.env.AWS_REGION || 'ap-southeast-2';
+const CONNECT_CLIENT = new ConnectClient({ region: REGION });
+const DOCCLIENT = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
+
 export const handler = async (event) => {
     // console.log("INPUT -  ", JSON.stringify(event));
     let result = {};
@@ -32,19 +42,28 @@ export const handler = async (event) => {
                 ) {
                     const contacts = kinesisData.CurrentAgentSnapshot.Contacts;
                     for (const currContact of contacts) {
-                        console.log('Evaluating contact state change - ', JSON.stringify(currContact));
+                        console.log('Evaluating state change - ', JSON.stringify(currContact));
                         // Check for Voice Contacts on Hold
                         if (currContact.Channel === 'VOICE' && currContact.State === constants.CONNECTED_ONHOLD) {
-                            console.log('Contact on hold is voice, and is on hold, proceeding');
-                            console.log(currContact);
-                            await holdEvent.save(kinesisData.EventId, currContact.ContactId, currContact.State, currContact.StateStartTimestamp);
+                            console.log('Contact on hold is voice, proceeding');
+                            try{
+                                await holdEvent.save(
+                                    kinesisData.EventId,
+                                    currContact.ContactId,
+                                    currContact.State,
+                                    currContact.StateStartTimestamp,
+                                    DOCCLIENT
+                                );
 
-                            console.log('contactId on hold', currContact.ContactId);
-                            await suspendContactRecording.process(currContact.ContactId, currContact.InitialContactId);
-                        // Check for voice contact that is connected
+                                console.log('contactId on hold', currContact.ContactId);
+                                await suspendContactRecording.process(currContact.ContactId, currContact.InitialContactId, CONNECT_CLIENT);
+                            } catch(err){
+                                console.error('Error processing suspend recording event', err);
+                            }
+                        // Check for voice contact that is connected, and so may need the contact recording resumed
+                        // Again, this may be a retrigger that was already resumed, but the API allows this
                         } else if (currContact.Channel === 'VOICE' && currContact.State === constants.CONNECTED) {
                             console.log('Connected contact is voice and is connected, checking if resuming from hold');
-                            console.log(currContact);
                             if (
                                 kinesisData.PreviousAgentSnapshot &&
                                 kinesisData.PreviousAgentSnapshot.Contacts &&
@@ -53,28 +72,34 @@ export const handler = async (event) => {
                                 const prevContacts = kinesisData.PreviousAgentSnapshot.Contacts;
                                 for (const prevContact of prevContacts) {
                                     if (
-                                        prevContact.Channel === 'VOICE' && 
-                                        prevContact.State === constants.CONNECTED_ONHOLD && 
+                                        prevContact.Channel === 'VOICE' &&
+                                        prevContact.State === constants.CONNECTED_ONHOLD &&
                                         currContact.ContactId === prevContact.ContactId
                                     ) {
                                         console.log('Contact that was on hold was voice, proceeding');
+                                        try{
+                                            await holdEvent.save(
+                                                kinesisData.EventId,
+                                                currContact.ContactId,
+                                                currContact.State,
+                                                currContact.StateStartTimestamp,
+                                                DOCCLIENT
+                                            );
 
-                                        await holdEvent.save(kinesisData.EventId, currContact.ContactId, currContact.State, currContact.StateStartTimestamp);
-
-                                        console.log('contactId resumed from hold', currContact.ContactId);
-                                        await resumeContactRecording.process(currContact.ContactId, currContact.InitialContactId);  
+                                            console.log('contactId resumed from hold', currContact.ContactId);
+                                            await resumeContactRecording.process(currContact.ContactId, currContact.InitialContactId, CONNECT_CLIENT);
+                                        } catch(err){
+                                            console.error('Error processing resume recording event', err);
+                                        }
                                     } else {
                                         console.log('Contact transition ignored');
-                                        continue;
                                     }
                                 }
                             } else {
                                 console.log('No previous state, skipping');
-                                continue;
                             }
                         } else {
                             console.log('Non-relevant event, skipping');
-                            continue;
                         }
                     }
                 }

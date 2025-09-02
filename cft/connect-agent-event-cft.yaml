@@ -154,8 +154,10 @@ Resources:
         Stream:
           Type: Kinesis
           Properties:
+            # Note: This may cause a large number of individual runs,
+            # but speed is important for this use case
             Stream: !Ref StreamARN
-            BatchSize: 20
+            BatchSize: 1
             StartingPosition: LATEST
 
 #######################

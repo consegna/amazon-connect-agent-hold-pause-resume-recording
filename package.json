@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "pack": "npm-pack-zip"
+    "pack": "npm-pack-zip && cp ./connect-agent-hold-stop-recording.zip ./zip/connect-agent-hold-stop-recording.zip && rm ./connect-agent-hold-stop-recording.zip"
   },
   "type": "module",
   "author": "",

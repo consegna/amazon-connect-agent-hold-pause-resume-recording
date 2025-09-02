@@ -1,13 +1,10 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { PutCommand } from "@aws-sdk/lib-dynamodb";
 
-const REGION = process.env.AWS_REGION || 'ap-southeast-2';
 const TABLENAME = process.env.HoldEventLogTable;
-const DOCCLIENT = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
 
 export const holdEvent = {
 
-    async save(eventId, ContactId, State, StateTimestamp) {
+    async save(eventId, ContactId, State, StateTimestamp, DocClient) {
 
         let inputToDb = {
             "eventId": eventId,
@@ -24,7 +21,7 @@ export const holdEvent = {
 
         console.log("dynamodbEvent saveCaseUpdate paramsPut : ", JSON.stringify(paramsPut));
 
-        const response = await DOCCLIENT.send(new PutCommand(paramsPut));
+        const response = await DocClient.send(new PutCommand(paramsPut));
         return response;
     }
 }

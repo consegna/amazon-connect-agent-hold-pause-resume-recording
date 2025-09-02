@@ -1,6 +1,5 @@
 
 import { 
-    ConnectClient, 
     ResumeContactRecordingCommand 
 } from "@aws-sdk/client-connect";
 
@@ -8,7 +7,7 @@ const InstanceARN = process.env.InstanceARN;
 
 export const resumeContactRecording = {
 
-    async process(ContactId, InitialContactId) {
+    async process(ContactId, InitialContactId, Client) {
         let arnList = (InstanceARN).split("/");
 
         const input = {
@@ -17,12 +16,11 @@ export const resumeContactRecording = {
             'InitialContactId': InitialContactId
         };
 
-        const client = new ConnectClient({ region: process.env.AWS_REGION });
         const command = new ResumeContactRecordingCommand(input);
 
         console.log('resumeContactRecording input', JSON.stringify(input));
 
-        const response = await client.send(command);
+        const response = await Client.send(command);
 
         console.log("resumeContactRecording response - ", JSON.stringify(response));
     }
