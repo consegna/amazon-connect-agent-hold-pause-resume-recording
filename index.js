@@ -23,13 +23,16 @@ export const handler = async (event) => {
         // Process each record in the Kinesis event. This is sequential processing, to do parallel processing
         // would need to use Promise.all and map, like follows:
         // await Promise.all(event.Records.map(async (record) => { 
-        //      let kinesisData = JSON.parse(Buffer.from(record.kinesis.data, 'base64').toString('ascii'));
+        //      let kinesisData = JSON.parse(Buffer.from(record.kinesis.data, 'base64').toString('utf-8'));
         //      ... the rest of the processing logic ...
         // }));
         // This is left as sequential for both logging, and also rapid toggling of hold states on a contact
         // could cause out of order processing if done in parallel
         for (let i = 0; i < event.Records.length; i++) {
-            let kinesisData = JSON.parse(Buffer.from(event.Records[i].kinesis.data, 'base64').toString('ascii'));
+            // Decode as UTF-8 as we can have non-ASCII characters, otherwise we get control characters that JSON will error on
+            let parsed_data = Buffer.from(event.Records[i].kinesis.data, 'base64').toString('utf-8');
+            console.debug("DATA -  ", parsed_data);
+            let kinesisData = JSON.parse(parsed_data);
 
             if (kinesisData.EventType === constants.STATE_CHANGE) {
                 console.log(JSON.stringify(kinesisData));
