@@ -89,8 +89,8 @@ export const handler = async (event) => {
                                                 DOCCLIENT
                                             );
 
-                                            console.log('contactId resumed from hold', currContact.ContactId);
                                             await resumeContactRecording.process(currContact.ContactId, currContact.InitialContactId, CONNECT_CLIENT);
+                                            console.log('contactId resumed from hold', currContact.ContactId);
                                         } catch(err){
                                             console.error('Error processing resume recording event', err);
                                         }
